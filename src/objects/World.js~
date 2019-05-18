@@ -1,0 +1,369 @@
+import Ocean from './Ocean'
+import Model from './Model'
+import Surface from './Surface'
+import Character from './Character'
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import EqualizerShader from '../shaders/EqualizerShader.glsl'
+import DrumsShader from '../shaders/DrumsShader.glsl'
+import AudioVertexShader from '../shaders/AudioVertexShader.glsl'
+import AudioObject from './AudioObject'
+
+var vector = new THREE.Vector3()
+var quaternion = new THREE.Quaternion()
+
+export default class World {
+  constructor(THREE, base) {
+    this.base = base
+    this.dolphins = [
+      new Model({
+        name: 'dolphin',
+        position: [10, 10, 0],
+        rotation:  [0, Math.PI * 5 / 4, - Math.PI / 6],
+        scale: 1,
+        frequencies: [ 2.0]
+      }),
+      new Model({
+        name: 'dolphin',
+        position: [20, 10, 0],
+        rotation:  [0, Math.PI * 5 / 4, - Math.PI / 6],
+        scale: 1,
+        frequencies: [5.0]
+      }),
+      new Model({
+        name: 'dolphin',
+        position: [0, 10, 80],
+        rotation:  [0, 0, 0],
+        scale: 1,
+        frequencies: [8.0]
+      }),
+      new Model({
+        name: 'dolphin',
+        position: [-20, 10, 0],
+        rotation:  [0, 0, 0],
+        scale: 1,
+        frequencies: [12.0]
+      })
+    ]
+
+    this.umbrellas = []
+    let numberOfUmbrellas = 10
+
+    for(let i = 0; i < numberOfUmbrellas; i++) {
+      this.umbrellas.push(
+        new Model({
+          name: 'umbrella',
+          position: [110 * Math.sin(2 * Math.PI * i / numberOfUmbrellas), 3, 110 * Math.cos(2 * Math.PI * i / numberOfUmbrellas)],
+          rotation: [0, 0, 0],
+          scale: 0.1
+        })
+      )
+    }
+        
+    
+    this.cookie = new Character({
+      name: 'mayhave-cookie',
+      position: [0, 5, 70],
+      rotation: [0, Math.PI, 0],
+      scale: 3,
+      url: 'vocals.wav'
+    })
+    
+    this.meshes = {
+      dolphins: []
+    }
+    this.audioObjects = []    
+  }
+
+  projectPointPlane =  (point, unitNormal) => {
+    let distance = point.dot(unitNormal)
+
+    return vector.copy(point).addScaledVector(unitNormal, - distance)
+
+  }
+
+  animate = (time, camera) => {
+    this.meshes.dolphins.forEach((dolphin, index, arr) => {
+      // dolphin.position.x = 5 * Math.sin(time * index) + camera.position.x
+      let radius = 5 * Math.sin(time) + 15
+      vector.set(1, 0, 0)
+      let direction = camera.getWorldDirection(vector)
+      let cameraAxis = vector.copy(camera.position).normalize()
+      let angle = Math.acos(cameraAxis.y / 2)
+      let rotationAxis = cameraAxis.cross(vector.clone().set(0, 1, 0)).normalize()
+
+      quaternion.setFromAxisAngle(rotationAxis, - angle)
+      
+      //let dolphinPosition = vector.addVectors(
+      //  camera.position ,
+      //  direction.multiplyScalar(camera.position.length() / 2)
+      //)
+
+      vector.set(
+        radius * Math.sin(- Math.PI * 2 *(time +  index / arr.length)),
+        0,
+        radius * Math.cos(- Math.PI * 2 *(time +  index / arr.length))
+      )
+
+      vector.applyQuaternion(quaternion)
+      dolphin.position.copy(vector)
+
+      quaternion.setFromAxisAngle(vector.set(1, 0, 0), 0.1)
+      dolphin.applyQuaternion(quaternion)
+    })
+
+    this.cookie.mesh.rotation.set(Math.PI / 2, 0, 0)
+    this.cookie.animate()
+  }
+
+  createOcean(THREE) {
+    let camera = this.base.camera
+    // create ocean
+    let gsize = 64;
+    let res = 54;
+    let gres = res / 2;
+    let origx = 0 //- gsize / 2;
+    let origz = 0 //- gsize; 
+    let origy = 3;
+    let ocean = new Ocean(THREE, this.base.renderer, this.base.camera, this.base.scene, {
+      USE_HALF_FLOAT: true,
+      INITIAL_SIZE: 128.0,
+      INITIAL_WIND: [ 13.0, 15.0 ],
+      INITIAL_CHOPPINESS: 10.5,
+      CLEAR_COLOR: [ 1.0, 1.0, 1.0, 0.0 ],
+      GEOMETRY_ORIGIN: [ origx, origy, origz ],
+      SUN_DIRECTION: [ - 1.0, 1.0, 1.0 ],
+      OCEAN_COLOR: new THREE.Vector3( 0.004, 0.016, 0.047 ),
+      SKY_COLOR: new THREE.Vector3( 3.2, 9.6, 12.8 ),
+      EXPOSURE: 0.05,
+      GEOMETRY_RESOLUTION: gres,
+      GEOMETRY_SIZE: gsize,
+      RESOLUTION: res
+    });
+    ocean.materialOcean.uniforms.u_projectionMatrix = { value: camera.projectionMatrix };
+    ocean.materialOcean.uniforms.u_viewMatrix = { value: camera.matrixWorldInverse };
+    ocean.materialOcean.uniforms.u_cameraPosition = { value: camera.position };
+
+
+    this.ocean = ocean;
+  }
+  
+  animateOcean = (camera, deltaTime) => {
+    this.ocean.deltaTime = deltaTime;
+    this.ocean.render( this.ocean.deltaTime );
+    this.ocean.overrideMaterial = this.ocean.materialOcean;
+    
+    if ( this.ocean.changed ) {
+      this.ocean.materialOcean.uniforms.u_size.value = this.ocean.size;
+      this.ocean.materialOcean.uniforms.u_sunDirection.value.set(this.ocean.sunDirectionX, this.ocean.sunDirectionY, this.ocean.sunDirectionZ );
+      this.ocean.materialOcean.uniforms.u_exposure.value = this.ocean.exposure;
+      this.ocean.changed = false;
+    }
+    this.ocean.materialOcean.uniforms.u_normalMap.value = this.ocean.normalMapFramebuffer.texture;
+    this.ocean.materialOcean.uniforms.u_displacementMap.value = this.ocean.displacementMapFramebuffer.texture;
+    this.ocean.materialOcean.uniforms.u_projectionMatrix.value = camera.projectionMatrix;
+    this.ocean.materialOcean.uniforms.u_viewMatrix.value = camera.matrixWorldInverse;
+    this.ocean.materialOcean.uniforms.u_cameraPosition.value = camera.position;
+    this.ocean.materialOcean.depthTest = true;
+  }
+
+  async createObjects(scene) {
+    let island = await this.createIsland(5, [0, 0, 0])
+    let beach = await this.createBeach()
+
+    this.base.scene.add(beach)    
+    this.base.scene.add(island[0])
+    this.base.scene.add(island[1])
+    
+    //this.meshes.push(island)
+
+    let trees = await this.createTrees()
+
+    trees.forEach(tree => {
+      this.audioObjects.push(tree)
+    })
+
+    // add load and add models meshes to scene
+    await Promise.all(this.dolphins.map(model => {return model.load()}))
+    let audioObject = new AudioObject(
+      this.dolphins,
+      'assets/bass.mp3',
+      EqualizerShader,
+      AudioVertexShader,
+      THREE
+    )
+
+    audioObject.meshes.forEach(mesh => {
+      this.meshes.dolphins.push(mesh)
+      this.base.scene.add(mesh)
+    })
+    
+    this.audioObjects.push(audioObject)
+
+    await this.cookie.load()
+    this.base.scene.add(this.cookie.mesh)
+
+    await Promise.all(this.umbrellas.map(model => {return model.load()}))
+    this.umbrellas.forEach((umbrella, index, arr) => {
+      umbrella.mesh.rotation.set(Math.PI / 2, 0 , -Math.PI / 2)
+      let axis = vector.set(- Math.cos(2 * Math.PI * index / arr.length), 0, Math.sin(2 * Math.PI * index / arr.length))
+      quaternion.setFromAxisAngle(axis, 4 * Math.PI / 5)
+      umbrella.mesh.applyQuaternion(quaternion)
+      this.base.scene.add(umbrella.mesh)
+    })
+
+  }
+
+  createTrees() {
+    // return promises of loaded objects
+    return new Promise((resolve, reject) => {
+      let loader = new GLTFLoader();
+      let trees = []
+      let positions = [
+        {
+          origin: [2, 6, 0],
+          rotation: [0, Math.PI * 5 / 4, - Math.PI / 6]
+        },
+        {
+          origin: [ -2, 5, 2],
+          rotation: [0, Math.PI / 4, 0] // Math.PI * 5 / 6, Math.PI * 17 / 6, - Math.PI * 11 / 6]
+        },
+        {
+          origin: [ 1.5, 5, -2],
+          rotation: [-Math.PI / 4, - Math.PI / 2, - Math.PI / 4]
+        },
+        {
+          origin: [ -2.5, 4.5, -2],
+          rotation: [ - Math.PI /  16, 0,  0]
+        }
+      ]
+
+      // load model from file
+      loader.load(
+        'assets/models/glb/palm-tree.glb',
+        (gltf) => {
+          positions.forEach((position, index, arr) => {
+            // get mesh
+            let tree = gltf.scene.clone().children[0];
+
+            tree = new AudioObject(
+              [tree],
+              'assets/bass.mp3',
+              EqualizerShader,
+              AudioVertexShader,
+              THREE
+            )
+
+            tree.meshes.forEach(mesh => {
+              mesh.rotation.set(position.rotation[0], position.rotation[1], position.rotation[2]);
+              mesh.position.set(position.origin[0], position.origin[1], position.origin[2]);
+              mesh.scale.set(0.005, 0.005, 0.005);
+              this.base.scene.add(mesh)
+            })
+
+
+            //tree.play()
+            // add to to list
+            trees.push(tree);
+
+            // assert all tree are loaded
+            if (trees.length === arr.length) {
+              console.log('resolve trees');
+              resolve(trees);
+            }
+          });
+        },
+        ( xhr ) => {
+          // called while loading is progressing
+          //`${( xhr.loaded / xhr.total * 100 )}% loaded` );
+        },
+        ( error ) => {
+          // called when loading has errors
+          console.error( 'An error happened', error );
+        }
+      );
+    });
+  }
+
+  createBeach() {
+    let surface = new Surface('gaussian')
+    let beachGeometry = surface.geometry
+    console.log(surface)
+
+    return new Promise ((resolve, reject) => {
+      let loader = new THREE.TextureLoader();
+      loader.load('assets/textures/sand-texture.jpg', (texture) => {
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set( 5, 5 );
+
+        let material = new THREE.MeshBasicMaterial( {
+          map: texture
+        });
+
+        material.side = THREE.DoubleSide;
+        
+        resolve(new THREE.Mesh(
+          beachGeometry,
+          material
+        ))
+      }, undefined, function ( err ) {
+        console.error( 'error loading beach'  );
+      });
+    })
+  }
+  
+  createIsland(radius, position) {
+    // return a promise for the meshes
+    return new Promise((resolve, reject) => {
+      // create geometries
+      let spheres = {
+        sand: new THREE.SphereGeometry(radius, 32, 32),
+        grass: new THREE.SphereGeometry(radius / 2, 32, 32)
+      }
+      
+      // position geometries
+      spheres['sand'].translate(position[0], position[1], position[2]);
+      spheres['grass'].translate(
+        position[0],
+        position[1] + radius * 5 / 8,
+        position[2]
+      )
+
+      // load textures
+      let loader = new THREE.TextureLoader();
+      let meshes = [];
+      let shapes = [
+        {
+          name: 'sand',
+          texture:'assets/textures/sand-texture.jpg',
+        },
+        {
+          name: 'grass',
+          texture: 'assets/textures/grass-texture.jpg'
+        }
+      ]
+
+      shapes.forEach((shape, index, arr) => {
+        loader.load(shape.texture, (texture) => {
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
+          texture.repeat.set( 5, 5 );
+
+          let material = new THREE.MeshBasicMaterial( {
+            map: texture
+          });
+          
+          meshes.push(new THREE.Mesh(spheres[`${shape.name}`], material));
+          if (meshes.length === arr.length) {
+            console.log('resolve');
+            resolve(meshes);
+          }
+
+        }, undefined, function ( err ) {
+          console.error( `error loading ${shape.name}` );
+        });
+      });
+    });
+  }
+}
