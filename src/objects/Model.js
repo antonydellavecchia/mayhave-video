@@ -9,14 +9,19 @@ const audioDir = 'assets/'
 export default class Model {
   constructor(model) {
     this.name = model.name
-    this.position = model.position
     this.rotation =  model.position
     this.scale = model.scale
     this.frequencies = model.frequencies
     this.geometry = null
     this.mesh = null
     this.audio = null
+    this.position ={
+      x: model.position[0],
+      y: model.position[1],
+      z: model.position[2],
+    }
   }
+
 
   load() {
     let loader = new GLTFLoader();
@@ -32,15 +37,29 @@ export default class Model {
 
           this.geometry = gltfObject.geometry
           this.mesh = gltfObject
-          this.mesh.rotation.set(this.rotation[0], this.rotation[1], this.rotation[2]);
-          this.mesh.position.set(this.position[0], this.position[1], this.position[2]);
-          this.mesh.scale.set(this.scale, this.scale, this.scale);
+
           gltfObject.traverse(object => {
             if (object.isMesh) {
-              object.material = new THREE.MeshBasicMaterial({map: object.material.map});
+              object.geometry.computeFaceNormals();
+              object.geometry.computeVertexNormals();
+              object.material = new THREE.MeshLambertMaterial({
+                map: object.material.map,
+                side: THREE.DoubleSide,
+                emissive: 0x2a2a2a,
+                emmissiveIntensity: 0.5
+              });
             }
+
+            //else if (object.isMesh) {
+            //  object.
+            //}
           });
+
+          this.mesh.rotation.set(this.rotation[0], this.rotation[1], this.rotation[2]);
+          this.mesh.position.set(this.position.x, this.position.y, this.position.z);
+          this.mesh.scale.set(this.scale, this.scale, this.scale);
           
+
           resolve(this)
 
         },
@@ -55,7 +74,17 @@ export default class Model {
       );
     });
   }
-
-  
 }
 
+export class MovingModel extends Model {
+  constructor(model, trajectory) {
+    super(model)
+    this.trajectory = trajectory
+  }
+
+  animate(time) {
+    let position = this.trajectory.getTarget(time, this.position)
+    this.mesh.position.set(position.x, position.y, position.z)
+    this.position = position
+  }
+}

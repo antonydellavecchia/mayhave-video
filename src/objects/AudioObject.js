@@ -1,13 +1,16 @@
 export default class AudioObject {
-  constructor(models, url, fragmentShader, VertexShader, THREE) {
+  constructor(playbackRate, models, url, fragmentShader, VertexShader, THREE) {
     let fftSize = 128;
     let listener = new THREE.AudioListener();
     let audio = new THREE.Audio( listener );
     this.mediaElement = new Audio(url);
     this.meshes = []
-    
+    this.models = models
+    this.name = models[0].name
+    this.mediaElement.playbackRate = playbackRate
     audio.setMediaElementSource( this.mediaElement );
 
+    
     this.analyser = new THREE.AudioAnalyser( audio, fftSize );
     this.uniforms = {
       tAudioData: {
@@ -25,26 +28,30 @@ export default class AudioObject {
       let uniforms = {...this.uniforms}
 
       if (model.frequencies) {
-        uniforms.frequencies ={
+        uniforms.frequency ={
           value: model.frequencies[0]
         }
       }
 
+      console.log(uniforms, this.name)
       let material = new THREE.ShaderMaterial( {
         uniforms: uniforms,
         vertexShader: VertexShader,
-        fragmentShader: fragmentShader
+        fragmentShader: fragmentShader,
+        transparent: this.name == 'twinkle',
+        opacity: 0.5
       } );
 
       material.side = THREE.DoubleSide;
 
       let mesh = new THREE.Mesh( model.geometry, material )
+      mesh.name = this.name
 
       if (model.position) {
         mesh.position.set(
-          model.position[0],
-          model.position[1],
-          model.position[2]
+          model.position.x,
+          model.position.y,
+          model.position.z
         )
 
       }
@@ -73,8 +80,22 @@ export default class AudioObject {
     this.mediaElement.play();
   }
 
-  animate = () => {
-    this.analyser.getFrequencyData();
+  animate = (time) => {
+    let frequencyArr = this.analyser.getFrequencyData();
+    let sum = 0;
+    frequencyArr.forEach(frequency => {
+      sum += frequency;
+    });
+    let average = sum / frequencyArr.length;
+    
+    
     this.uniforms.tAudioData.value.needsUpdate = true
+    this.models.forEach(model => {
+      if (model.trajectory) {
+        model.animate(time)
+      }
+    })
+
+    return average
   }
 }

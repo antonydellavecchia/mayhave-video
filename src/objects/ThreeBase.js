@@ -10,22 +10,35 @@ export default class ThreeBase {
       1000
     )
 
-    let renderer = new THREE.WebGLRenderer({ antialias: true })
+    let renderer = new THREE.WebGLRenderer({ antialias: true });
 
     // settings
     renderer.setClearColor('rgb(247,111,173)')
     renderer.setPixelRatio( window.devicePixelRatio );
-
+    
+    
     // extensions for water
     renderer.context.getExtension( 'OES_texture_float' );
     renderer.context.getExtension( 'OES_texture_float_linear' );
 
     // set size
     renderer.setSize(width, height);
-
+    this.time = 0
     this.renderer = renderer    
     this.scene = scene
     this.camera = camera
+    
+    // add light
+    var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+
+    this.light = new THREE.DirectionalLight( 0xffffff, 1.2 )
+    this.scene.add(new THREE.AmbientLight(0x404040))
+    //this.scene.add(this.light)
+    this.scene.add(light)
+
+    // timing
+    
+    this.playbackRate = 1.1
   }
 
   renderScene = () => {
@@ -34,7 +47,8 @@ export default class ThreeBase {
 
 
 
-  animate () {
+  animate (debug) {
+
     this.renderScene()
   }
 }

@@ -16,7 +16,8 @@ export default class Character {
     let fftSize = 128;
     let listener = new THREE.AudioListener();
     let audio = new THREE.Audio( listener );
-    
+
+    this.mediaElement.playbackRate = params.playbackRate
     audio.setMediaElementSource( this.mediaElement );
 
     this.analyser = new THREE.AudioAnalyser( audio, fftSize );
@@ -47,7 +48,7 @@ export default class Character {
           gltfObject.traverse(object => {
             if (object.isMesh) {
               object.material = new THREE.MeshBasicMaterial({map: object.material.map});
-            }
+             }
           });
 
           this.mesh = gltfObject
@@ -75,19 +76,21 @@ export default class Character {
     let mouth = this.mesh.children[0];
     let frequencyArr = this.analyser.getFrequencyData();
     let sum = 0;
-    
+
     frequencyArr.forEach(frequency => {
       sum += frequency;
     });
     
     let average = sum / frequencyArr.length;
-    let input = average / 7;
+    let input = average / 10;
     //let input = frequencyArr[4] / 100;
-    let mouthAngle = Math.PI * Math.exp(0.5 * input) / (1 + Math.exp(0.5 * input));
+    let mouthAngle =   -3 * Math.PI / 2 + 0.4 * Math.PI * Math.exp(input) /  (1 + Math.exp(input))
     
     mouth.rotation.x = mouthAngle;
     
     this.analyser.getFrequencyData();
     this.uniforms.tAudioData.value.needsUpdate = true
+    
+    return sum
   }
 }

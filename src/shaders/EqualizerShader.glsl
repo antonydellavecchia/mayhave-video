@@ -1,5 +1,5 @@
 uniform sampler2D tAudioData;
-uniform int frequency;
+uniform float frequency;
 varying vec4 vUv;
 
 float rand(vec2 co){
@@ -7,20 +7,11 @@ float rand(vec2 co){
 }
 
 void main() {
-  float random1 = rand(vec2(vUv.x, vUv.y));
-  float random2 = rand(vec2(vUv.x, vUv.z));
-  float f =  texture2D( tAudioData, vec2( frequency , 0.0) ).g;
-  float radius = 0.5;
-  //vec3 backgroundColor = vec3( min(vUv.y, f), min(radius, f), min((f / 10.0), 0.1) );
-  //vec3 backgroundColor = vec3( min(abs(vUv.y), 1.0), f, min((f / 10.0), 0.1) );
-  float i = step(vUv.y,  600.0 * f) * step(600.0 * f - 100.0, vUv.y);
-  //float j = step(vUv.z, 100.0);
-  //float wave = 4.2 * sin(2.0 * 3.1415926535897932384626433832795 * (f - 0.5));
-  //float compare = step(wave, vUv.x);
+  float f =  texture2D( tAudioData, vec2( vUv.z, frequency) ).g;
+  float radius = length(vUv);
+  float circleNumber = floor(radius);
   
-  vec3 backgroundColor = vec3( 1.0, i, 0.0);
-
-  
+  vec3 backgroundColor = vec3( 0.25, circleNumber / 15.0, 0.0);
 
   gl_FragColor = vec4(backgroundColor, 0.1);
 }

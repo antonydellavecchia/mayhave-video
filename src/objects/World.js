@@ -1,13 +1,18 @@
 import Ocean from './Ocean'
-import Model from './Model'
+import Model, { MovingModel }from './Model'
 import Surface from './Surface'
 import Character from './Character'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import EqualizerShader from '../shaders/EqualizerShader.glsl'
+import ArpsShader from '../shaders/ArpsShader.glsl'
+import CloudShader from '../shaders/CloudShader.glsl'
 import DrumsShader from '../shaders/DrumsShader.glsl'
+import EqualizerShader from '../shaders/EqualizerShader.glsl'
+import DolphinShader from '../shaders/DolphinShader.glsl'
 import AudioVertexShader from '../shaders/AudioVertexShader.glsl'
 import AudioObject from './AudioObject'
+import Trajectory from './Trajectory'
+import Island from './Island'
 
 var vector = new THREE.Vector3()
 var quaternion = new THREE.Quaternion()
@@ -15,7 +20,130 @@ var quaternion = new THREE.Quaternion()
 export default class World {
   constructor(THREE, base) {
     this.base = base
+    this.islands =[]
+    this.dolphinCenter = {
+      x: 0,
+      y: 0,
+      z: 0
+    }
+    
+    this.clouds = [
+      new MovingModel({
+        name: 'cloud',
+        position: [ 0, 45, 45],
+        rotation: [ 0, Math.PI, 0],
+        scale: 1,
+        frequencies: [3]
+      }, new Trajectory([
+        (deltaTime, position) => {
+          let ode = {
+            x: position.z - position.x * 0.1,
+            y: - position.x * position.z / 11,
+            z: -1 * position.x - position.z * 0.1
+          }
+
+          return {
+            x: position.x + ode.x * deltaTime,
+            y: position.y + ode.y * deltaTime,
+            z: position.z + ode.z * deltaTime
+          }
+        }
+      ])
+      ), new MovingModel({
+        name: 'cloud',
+        position: [ 50, 75, 45],
+        rotation: [ Math.PI * 5 /  4, Math.PI / 2, Math.PI],
+        scale: 1,
+        frequencies: [6]
+      }, new Trajectory([
+        (deltaTime, position) => {
+          let ode = {
+            x: position.z - position.x * 0.1,
+            y: - position.x * position.z / 11,
+            z: -1 * position.x - position.z * 0.1
+          }
+
+          return {
+            x: position.x + ode.x * deltaTime,
+            y: position.y + ode.y * deltaTime,
+            z: position.z + ode.z * deltaTime
+          }
+        }
+      ])
+      ), new MovingModel({
+        name: 'cloud',
+        position: [ 0, 100, -20],
+        rotation: [ 0, 0, 0],
+        scale: 1,
+        frequencies: [6]
+      }, new Trajectory([
+        (deltaTime, position) => {
+          let ode = {
+            x: position.z - position.x * 0.1,
+            y: - position.x * position.z / 11,
+            z: -1 * position.x - position.z * 0.1
+          }
+
+          return {
+            x: position.x + ode.x * deltaTime,
+            y: position.y + ode.y * deltaTime,
+            z: position.z + ode.z * deltaTime
+          }
+        }
+      ])
+      ), new MovingModel({
+        name: 'cloud',
+        position: [ 25, 60, -25],
+        rotation: [ 0, 0, 0],
+        scale: 1,
+        frequencies: [6]
+      }, new Trajectory([
+        (deltaTime, position) => {
+          let ode = {
+            x: position.z - position.x * 0.1,
+            y: - position.x * position.z / 11,
+            z: -1 * position.x - position.z * 0.1
+          }
+
+          return {
+            x: position.x + ode.x * deltaTime,
+            y: position.y + ode.y * deltaTime,
+            z: position.z + ode.z * deltaTime
+          }
+        }
+      ])
+      ), new MovingModel({
+        name: 'cloud',
+        position: [ -25, 20, 50],
+        rotation: [ 0, 0, 0],
+        scale: 1,
+        frequencies: [6]
+      }, new Trajectory([
+        (deltaTime, position) => {
+          let ode = {
+            x: position.z - position.x * 0.1,
+            y: - position.x * position.z / 11,
+            z: -1 * position.x - position.z * 0.1
+          }
+
+          return {
+            x: position.x + ode.x * deltaTime,
+            y: position.y + ode.y * deltaTime,
+            z: position.z + ode.z * deltaTime
+          }
+        }
+      ])
+      )
+    ]
+    
     this.dolphins = [
+      new Model({
+        name: 'dolphin',
+        position: [10, 10, 0],
+        rotation:  [0, Math.PI * 5 / 4, - Math.PI / 6],
+        scale: 1,
+        frequencies: [ 2.0]
+      }),
       new Model({
         name: 'dolphin',
         position: [10, 10, 0],
@@ -53,36 +181,48 @@ export default class World {
       this.umbrellas.push(
         new Model({
           name: 'umbrella',
-          position: [110 * Math.sin(2 * Math.PI * i / numberOfUmbrellas), 3, 110 * Math.cos(2 * Math.PI * i / numberOfUmbrellas)],
+          position: [110 * Math.sin(2 * Math.PI * i / numberOfUmbrellas), 2, 110 * Math.cos(2 * Math.PI * i / numberOfUmbrellas)],
           rotation: [0, 0, 0],
-          scale: 0.1
+          scale: 0.15
         })
       )
     }
 
     this.chairs = []
-   
+    this.cookies = []
+    
     for(let i = 0; i < numberOfUmbrellas; i++) {
       this.chairs.push(
         new Model({
           name: 'chair',
-          position: [110 * Math.sin(2 * Math.PI * i / numberOfUmbrellas), 3, 110 * Math.cos(2 * Math.PI * i / numberOfUmbrellas)],
+          position: [111 * Math.sin(2 * Math.PI * i / numberOfUmbrellas), 3, 111 * Math.cos(2 * Math.PI * i / numberOfUmbrellas)],
           rotation: [0, 0, 0],
           scale: 0.06
         })
       )
+
+      this.cookies.push(new Character({
+        playbackRate: this.base.playbackRate,
+        name: 'mayhave-cookie',
+        position: [112 * Math.sin(2 * Math.PI * i / numberOfUmbrellas), 4.5, 112 * Math.cos(2 * Math.PI * i / numberOfUmbrellas)],
+        rotation: [0, Math.PI, 0],
+        scale: 2,
+        url: 'vocals.mp3'
+      }))
     }
     
     this.cookie = new Character({
+      playbackRate: this.base.playbackRate,
       name: 'mayhave-cookie',
-      position: [0, 5, 70],
+      position: [50, 50, 50],
       rotation: [0, Math.PI, 0],
       scale: 3,
-      url: 'vocals.wav'
+      url: 'vocals.mp3'
     })
     
     this.meshes = {
-      dolphins: []
+      dolphins: [],
+      clouds: []
     }
     this.audioObjects = []    
   }
@@ -95,6 +235,11 @@ export default class World {
   }
 
   animate = (time, camera) => {
+    this.islands.forEach((island, index) => {
+      let axis = vector.set(Math.pow(-1, index), - Math.pow(-1, index), index /2).normalize()
+      island.rotate(axis, 0.01)
+    })
+    
     this.meshes.dolphins.forEach((dolphin, index, arr) => {
       // dolphin.position.x = 5 * Math.sin(time * index) + camera.position.x
       let radius = 5 * Math.sin(time) + 15
@@ -110,6 +255,7 @@ export default class World {
       //  camera.position ,
       //  direction.multiplyScalar(camera.position.length() / 2)
       //)
+      
 
       vector.set(
         radius * Math.sin(- Math.PI * 2 *(time +  index / arr.length)),
@@ -117,15 +263,30 @@ export default class World {
         radius * Math.cos(- Math.PI * 2 *(time +  index / arr.length))
       )
 
+
       vector.applyQuaternion(quaternion)
       dolphin.position.copy(vector)
+      
+      vector.set(this.dolphinCenter.x, this.dolphinCenter.y, this.dolphinCenter.z)
+      dolphin.position.copy(vector.add(dolphin.position))
 
-      quaternion.setFromAxisAngle(vector.set(1, 0, 0), 0.1)
-      dolphin.applyQuaternion(quaternion)
+      if (this.dolphinCenter.y == 0) {
+        quaternion.setFromAxisAngle(vector.set(1, 0, 0), 0.1)
+        dolphin.applyQuaternion(quaternion)
+      }
+
+      else {
+        dolphin.lookAt(this.base.camera.position)
+        quaternion.setFromAxisAngle(vector.set(1, 0, 0), Math.PI)
+        dolphin.applyQuaternion(quaternion)
+
+        quaternion.setFromAxisAngle(vector.set(0, 0, 1), -Math.PI / 2)
+        dolphin.applyQuaternion(quaternion)
+      }
     })
 
-    this.cookie.mesh.rotation.set(Math.PI / 2, 0, 0)
-    this.cookie.animate()
+
+    return this.cookie.animate()
   }
 
   createOcean(THREE) {
@@ -180,50 +341,104 @@ export default class World {
   }
 
   async createObjects(scene) {
-    let island = await this.createIsland(5, [0, 0, 0])
     let beach = await this.createBeach()
 
-    this.base.scene.add(beach)    
-    this.base.scene.add(island[0])
-    this.base.scene.add(island[1])
+    let island = new Island(5, [0, 0, 0])
     
+    await island.load()
+    island.meshes.forEach(mesh => {this.base.scene.add(mesh)})
+
+    this.island = island
+
+    beach.name = 'beach'
+    this.beach = beach
+    this.base.scene.add(beach)    
+
+    for (let i = 0; i < 10; i++) {
+      this.islands.push(new Island(5, [
+        25 * Math.cos(2 * Math.PI * i / 10),
+        175 + Math.random() * 100,
+        25 * Math.sin(2 * Math.PI * i /10)
+      ]))
+    }
+
+    await Promise.all(this.islands.map(model => {return model.load()}))
+    this.islands.forEach(island => {
+      island.meshes.forEach(mesh => { this.base.scene.add(mesh)})
+    })
+        
     //this.meshes.push(island)
 
-    let trees = await this.createTrees()
 
-    trees.forEach(tree => {
-      this.audioObjects.push(tree)
-    })
-
-    // add load and add models meshes to scene
-    await Promise.all(this.dolphins.map(model => {return model.load()}))
+    // load and add cloud meshes to scene
+    await Promise.all(this.clouds.map(model => {return model.load()}))
     let audioObject = new AudioObject(
-      this.dolphins,
-      'assets/bass.mp3',
-      EqualizerShader,
+      this.base.playbackRate,
+      this.clouds,
+      'assets/twinkle_city.mp3',
+      CloudShader,
       AudioVertexShader,
       THREE
     )
-
+//
+//
     audioObject.meshes.forEach(mesh => {
-      this.meshes.dolphins.push(mesh)
-      this.base.scene.add(mesh)
+      this.meshes.clouds.push(mesh)
+      console.log(this.base.scene)
     })
     
     this.audioObjects.push(audioObject)
 
+    this.clouds.forEach(cloud => { this.base.scene.add(cloud.mesh) })
+    
+
+    // add load and add models meshes to scene
+    await Promise.all(this.dolphins.map(model => {return model.load()}))
+    console.log(this.dolphins)
+    this.dolphins.forEach(dolphin => {
+      dolphin.mesh.material.color = new THREE.Color("rgb(247,111,173)");     
+      this.meshes.dolphins.push(dolphin.mesh)
+      this.base.scene.add(dolphin.mesh)
+    })
+
+
     await this.cookie.load()
+    this.cookie.mesh.name = "mayhave-cookie"
     this.base.scene.add(this.cookie.mesh)
 
+      
     await Promise.all(this.umbrellas.map(model => {return model.load()}))
     this.umbrellas.forEach((umbrella, index, arr) => {
       umbrella.mesh.rotation.set(Math.PI / 2, 0 , -Math.PI / 2)
       let axis = vector.set(- Math.cos(2 * Math.PI * index / arr.length), 0, Math.sin(2 * Math.PI * index / arr.length))
-      quaternion.setFromAxisAngle(axis, 4 * Math.PI / 5)
+      quaternion.setFromAxisAngle(axis, 11 * Math.PI / 12)
       umbrella.mesh.applyQuaternion(quaternion)
       this.base.scene.add(umbrella.mesh)
     })
 
+    await Promise.all(this.cookies.map(model => {return model.load()}))
+    this.cookies.forEach((cookie, index, arr) => {
+      cookie.mesh.rotation.set(Math.PI / 2, 0 , -Math.PI / 2)
+      
+      let axis = vector.set(0, 1, 0)
+      quaternion.setFromAxisAngle(axis, 2 * Math.PI * index / arr.length + Math.PI / 2)
+      cookie.mesh.applyQuaternion(quaternion)
+      
+      axis = vector.set(- Math.cos(2 * Math.PI * index / arr.length), 0, Math.sin(2 * Math.PI * index / arr.length))
+      quaternion.setFromAxisAngle(axis, -Math.PI / 4)
+      cookie.mesh.applyQuaternion(quaternion)
+
+      cookie.mesh.position.set(
+	cookie.position[0] + 5 * axis.x,
+	cookie.position[1] + 5 * axis.y + 2,
+	cookie.position[2] + 5 * axis.z
+      )
+
+      
+      cookie.mesh.scale.set(cookie.scale, cookie.scale, cookie.scale);
+      this.base.scene.add(cookie.mesh)
+    })
+    
     await Promise.all(this.chairs.map(model => {return model.load()}))
     this.chairs.forEach((chair, index, arr) => {
       chair.mesh.rotation.set(Math.PI / 2, 0 , -Math.PI / 2)
@@ -237,9 +452,9 @@ export default class World {
       chair.mesh.applyQuaternion(quaternion)
 
       chair.mesh.position.set(
-	chair.position[0] + 4 * axis.x,
-	chair.position[1] + 4 * axis.y,
-	chair.position[2] + 4 * axis.z
+	chair.position.x + 5 * axis.x,
+	chair.position.y + 5 * axis.y,
+	chair.position.z + 5 * axis.z
       )
 
       this.base.scene.add(chair.mesh)
@@ -292,6 +507,7 @@ export default class World {
               mesh.rotation.set(position.rotation[0], position.rotation[1], position.rotation[2]);
               mesh.position.set(position.origin[0], position.origin[1], position.origin[2]);
               mesh.scale.set(0.005, 0.005, 0.005);
+              mesh.name = 'tree'
               this.base.scene.add(mesh)
             })
 
@@ -346,7 +562,7 @@ export default class World {
       });
     })
   }
-  
+
   createIsland(radius, position) {
     // return a promise for the meshes
     return new Promise((resolve, reject) => {
@@ -387,8 +603,11 @@ export default class World {
           let material = new THREE.MeshBasicMaterial( {
             map: texture
           });
+
+          let mesh = new THREE.Mesh(spheres[`${shape.name}`], material)
+          mesh.name = shape.name
           
-          meshes.push(new THREE.Mesh(spheres[`${shape.name}`], material));
+          meshes.push(mesh);
           if (meshes.length === arr.length) {
             console.log('resolve');
             resolve(meshes);

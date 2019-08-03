@@ -1,26 +1,215 @@
+import * as THREE from 'three'
 import AudioObject from './AudioObject'
 import DrumsShader from '../shaders/DrumsShader.glsl'
 import ArpsShader from '../shaders/ArpsShader.glsl'
 import BassShader from '../shaders/BassShader.glsl'
+import GuitarShader from '../shaders/GuitarShader.glsl'
 import MobiusVertexShader from '../shaders/MobiusVertexShader.glsl'
 import AudioVertexShader from '../shaders/AudioVertexShader.glsl'
 import World from './World'
+import Trajectory from './Trajectory'
 import Surface from './Surface'
 import Ocean from './Ocean'
-import * as THREE from 'three'
+
+var vector = new THREE.Vector3()
+var quaternion = new THREE.Quaternion()
 
 export default class Video {
   constructor(THREE, base) {
+    this.playbackRate = base.playbackRate
     let surfaces = [new Surface('mobius')]
+    this.end = false
+    // starting position
     this.lastTarget = {
-      x: 0,
-      y: 0,
-      z: 0
+      x: 20,
+      y: 70,
+      z: -20
     }
+
+    this.trajectory = new Trajectory([
+      // path 0
+      (deltaTime, position) => {
+        let ode = {
+          x: position.z - position.x * 0.1,
+          y: - position.x * position.z / 15,
+          z: -1 * position.x - position.z * 0.1
+        }
+
+        return {
+          x: position.x + ode.x * deltaTime,
+          y: position.y + ode.y * deltaTime,
+          z: position.z + ode.z * deltaTime
+        }
+      },
+
+      // path 1 
+      (deltaTime, pos) => {
+        // rossler
+        
+        let origin = {
+          x: 0,
+          y: 20,
+          z: 0
+        }
+
+        let scale = 0.15
+        let position = {
+          x: scale *  (pos.x - origin.x),
+          y: scale *  (pos.y - origin.y),
+          z: scale *  (pos.z - origin.z)
+        }
+
+        let a =  1.2
+        let b =  1.2
+        let c = 1.7
+        
+        let ode = {
+          x: -1 * (position.y + position.z),
+          y: b + position.x * position.y - c * position.y,
+          z: position.x + a * position.z
+        }
+
+        return {
+          x: pos.x + ode.x * deltaTime,
+          y: pos.y + ode.y * deltaTime,
+          z: pos.z + ode.z * deltaTime
+        }
+      },
+
+      // path 2
+      (deltaTime, pos) => {
+        
+        // lorenz
+        let sigma = 10
+        let beta = 8 / 3
+        let rho = 0.5
+
+        let origin = {
+          x: 0,
+          y: - 10,
+          z: 0
+        }
+
+        let scale = 1
+        let position = {
+          x: scale *  (pos.x - origin.x),
+          y: scale *  (pos.y - origin.y),
+          z: scale *  (pos.z - origin.z)
+        }
+        
+        let ode = {
+          x: sigma * (position.y - position.x),
+          y: (position.x *  position.z - beta * position.y),
+          z: position.x * (rho - position.y) - position.z
+        }
+
+        return {
+          x: pos.x - ode.x * 0.05 * deltaTime,
+          y: pos.y - ode.y * 0.05 * deltaTime,
+          z: pos.z - ode.z * 0.05 * deltaTime
+        }
+      },
+
+      // path 3
+      (deltaTime, pos) => {
+        let a = 1
+        let b = 1
+        let c = 1
+
+        let origin = {
+          x: 0,
+          y: 15,
+          z: 0
+        }
+
+        let position = {
+          x: (pos.x - origin.x),
+          y: (pos.y - origin.y),
+          z: (pos.z - origin.z)
+        }
+        
+        let ode = {
+          x: position.z ,
+          y: - position.y,
+          z: - position.x
+        }
+
+        return {
+          x: pos.x + ode.x * deltaTime ,
+          y: pos.y + ode.y * deltaTime ,
+          z: pos.z + ode.z * deltaTime
+        }
+      },
+
+      // path 4
+      (deltaTime, pos) => {
+        let a =  0.2
+        let b =  1.2
+        let c = 5.7
+
+        
+        let origin = {
+          x: 0,
+          y: -50,
+          z: 0
+        }
+
+        let scale = 1
+        let position = {
+          x: scale *  (pos.x - origin.x),
+          y: scale *  (pos.y - origin.y),
+          z: scale *  (pos.z - origin.z)
+        }
+
+        let ode = {
+          x: position.z,
+          y: position.y * (1 - position.y / 1000),
+          z: - position.x - 0.95 * position.z
+        }
+
+        return {
+          x: pos.x + ode.x * deltaTime ,
+          y: pos.y - ode.y * deltaTime ,
+          z: pos.z + ode.z * deltaTime
+        }
+      },
+
+      //path 5
+      (deltaTime, pos) => {
+        let origin = {
+          x: 0,
+          y: 200,
+          z: 0
+        }
+
+        
+        let scale = 1
+        let position = {
+          x: scale *  (pos.x - origin.x),
+          y: scale *  (pos.y - origin.y),
+          z: scale *  (pos.z - origin.z)
+        }
+
+        let ode = {
+          x: 0,
+          y: -position.y / 3,
+          z: 0
+        }
+
+        return {
+          x: pos.x + ode.x * deltaTime ,
+          y: pos.y + ode.y * deltaTime ,
+          z: pos.z + ode.z * deltaTime
+        }
+      }
+    ])
+
+    
     this.cameraPosition = new THREE.Vector3(0, 50, 0)
     this.audioObjects = [
       new AudioObject(
-        [{geometry: new THREE.SphereBufferGeometry(150, 32, 32)}],
+        this.playbackRate,
+        [{geometry: new THREE.SphereBufferGeometry(150, 32, 32), name: 'drums'}],
         'assets/drums.mp3',
         DrumsShader,
         AudioVertexShader,
@@ -28,7 +217,8 @@ export default class Video {
       ),
 
       new AudioObject(
-        [{geometry: new THREE.SphereBufferGeometry(150, 32, 32)}],
+        this.playbackRate,
+        [{geometry: new THREE.SphereBufferGeometry(150, 32, 32), name: 'arps'}],
         'assets/arps.mp3',
         ArpsShader,
         AudioVertexShader,
@@ -36,6 +226,7 @@ export default class Video {
       ),
 
       new AudioObject(
+        this.playbackRate,
         [{geometry: new THREE.SphereBufferGeometry(175, 32, 32)}],
         'assets/arps.mp3',
         ArpsShader,
@@ -43,13 +234,31 @@ export default class Video {
         THREE
       ),
 
-      //new AudioObject(
-      //  surfaces[0].geometry,
-      //  'assets/bass.mp3',
-      //  BassShader,
-      //  MobiusVertexShader,
-      //  THREE
-      //)
+      new AudioObject(
+        this.playbackRate,
+        [{geometry: new THREE.SphereBufferGeometry(120, 32, 32), name: 'twinkle'}],
+        'assets/twinkle_city.mp3',
+        BassShader,
+        AudioVertexShader,
+        THREE
+      ),
+//      new AudioObject(
+//        this.playbackRate,
+//        [{geometry: new THREE.SphereBufferGeometry(125, 32, 32), name: 'twinkle'}],
+//        'assets/guitar.mp3',
+//        GuitarShader,
+//        AudioVertexShader,
+//        THREE
+//      ),
+
+      new AudioObject(
+        this.playbackRate,
+        [{geometry: new THREE.SphereBufferGeometry(270, 32, 32), name: 'twinkle'}],
+        'assets/guitar.mp3',
+        GuitarShader,
+        AudioVertexShader,
+        THREE
+      )
     ]
 
     this.rotations = [{
@@ -65,8 +274,6 @@ export default class Video {
       y:0,
       z:0
     }]
-
-
 
     // create ocean
     let renderer = base.renderer
@@ -105,17 +312,15 @@ export default class Video {
     this.world = new World(THREE, base)
     this.world.createObjects()
     this.time = 0
-    this.step = 0.01
-
+    this.step = 0.05 * this.playbackRate
+    
     this.world.audioObjects.forEach(element => { this.audioObjects.push(element)})
-    console.log(this.audioObjects)
   }
 
   setCameraPos(target) {
+    target = this.trajectory.getTarget(this.time, this.lastTarget)
 
     //let target = this.surfaces[0].path(this.time).position
-
-
     // set camera to follow path on geometry
     this.base.camera.position.set(
       target.x,
@@ -123,17 +328,170 @@ export default class Video {
       target.z
     )
 
-    //let lookAtTarget = {
-    //  x: 2 * target.x - this.lastTarget.x,
-    //  y: 2 * target.y - this.lastTarget.y,
-    //  z: 2 * target.z - this.lastTarget.z
-    //}
-    //
-    //this.base.camera.lookAt(
-    //  lookAtTarget.x,
-    //  lookAtTarget.y,
-    //  lookAtTarget.z
-    //)
+    
+    console.log(target, this.world.cookie, this.lastTarget)
+    
+    this.lookAtTarget = {
+      x: 2 * target.x - this.lastTarget.x,
+      y: 2 * target.y - this.lastTarget.y,
+      z: 2 * target.z - this.lastTarget.z
+    }
+
+    let beach = this.base.scene.getObjectByName('beach')
+    
+    if (beach && target.y < beach.position.y + 2) {
+      this.base.scene.remove(beach)
+    }
+
+    else if (!beach && target.y > 7) {
+      this.base.scene.add(this.world.beach)
+
+
+      this.world.cookie.mesh.position.set(
+        this.lookAtTarget.x - 0.3 * (this.lookAtTarget.x -  this.base.camera.position.x),
+        this.lookAtTarget.y - 0.3 * (this.lookAtTarget.y -  this.base.camera.position.y),
+        this.lookAtTarget.z - 0.3 * (this.lookAtTarget.z -  this.base.camera.position.z)
+      )
+
+    }
+    
+    if (this.trajectory.step === 1) {
+      let initial = {
+        x: 0,
+        y: 200,
+        z: 100
+      }
+
+      //let initial = {
+      //  x: this.halfTimeLookAt.x * Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)),
+      //  y: this.halfTimeLookAt.y * Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2)),
+      //  z: this.halfTimeLookAt.z * Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))
+      //}
+
+      let end = {
+        x: this.world.cookie.mesh.x * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)),
+        y: this.world.cookie.mesh.y * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)),
+        z: this.world.cookie.mesh.z * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2))
+      }
+
+      
+      this.lookAtTarget = {
+        x: initial.x + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.x,
+        y: initial.y + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.y,
+        z: initial.z + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.z
+      }
+
+
+    }
+
+    if (this.trajectory.step > 1 && this.trajectory.step < 3) {
+      this.lookAtTarget = {
+        x: 0,
+        y: 0,
+        z: 0
+      }
+    }
+
+    if (this.trajectory.step == 3) {
+      let end = {...this.lookAtTarget}
+
+      this.lookAtTarget = {
+        x: (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * end.x,
+        y: (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * end.y,
+        z: (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * end.z
+      }
+
+
+      //console.log(this.lookAtTarget, this.time - this.halfTime)
+      let finalCookiePos = {
+        x: - 1 * this.base.camera.position.x,
+        y: - 1 * this.base.camera.position.y,
+        z: - 1 * this.base.camera.position.z
+      }
+      
+      let cookieTarget = {
+        x: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * finalCookiePos.x,
+        y: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * finalCookiePos.y,
+        z: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * finalCookiePos.z
+      }
+
+      this.world.cookie.mesh.position.set(
+        0,
+        75,
+        0
+      )
+
+    }
+
+    if (this.trajectory.step == 4) {
+
+      let camera = this.base.camera
+      
+      vector.set(1, 0, 0)
+      let direction = camera.getWorldDirection(vector)
+      let cameraAxis = vector.copy(camera.position).normalize()
+      let angle = Math.acos(cameraAxis.y / 2)
+      let rotationAxis = cameraAxis.cross(vector.clone().set(0, 1, 0)).normalize()
+      this.world.island.rotate(cameraAxis, angle / 100)
+    }
+    
+
+    if (this.trajectory.step == 4) {
+      let end = {...this.lookAtTarget}
+      
+      this.lookAtTarget = {
+        x: Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)) * this.beachPosition.x,
+        y: Math.exp(- 0.01 * Math.pow((this.time - this.halfTime), 2)) * this.beachPosition.y,
+        z: Math.exp(- 0.01 * Math.pow((this.time - this.halfTime), 2)) * this.beachPosition.z
+      }
+
+      if (this.world.dolphinCenter.y > -50) {
+        this.world.dolphinCenter.y -= 0.05
+      }
+
+    }
+
+    if (this.trajectory.step == 5) {
+      let initial = {...this.lookAtTarget}
+      let end = {
+        x: 0,
+        y: 1000,
+        z: 0
+      }
+
+      
+
+      this.lookAtTarget = {
+        x: initial.x + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.x,
+        y: initial.y + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.y,
+        z: initial.z + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.z
+      }
+
+
+      if ( target.y > - 29) {
+        this.world.cookie.mesh.position.set(target.x, target.y + 29.5, target.z)
+      }
+
+      this.world.dolphinCenter = {
+        x: target.x,
+        y: target.y + (this.time - this.halfTime),
+        z: target.z
+      }
+
+      let angle = Math.PI / 6
+      let rotationAxis = vector.set(0, 1, 0)
+
+      quaternion.setFromAxisAngle(rotationAxis, - angle)
+      
+      this.world.cookie.mesh.lookAt(0, 0, 0)
+      this.world.cookie.mesh.applyQuaternion(quaternion)
+    }
+
+    this.base.camera.lookAt(
+      this.lookAtTarget.x,
+      this.lookAtTarget.y,
+      this.lookAtTarget.z
+    )
 
     //let lookAtTarget = {
     //  x: 2 * target.x - this.lastTarget.x,
@@ -143,6 +501,8 @@ export default class Video {
 
 
     this.lastTarget = target
+
+
 
   }
   
@@ -172,6 +532,7 @@ export default class Video {
     //let quaternion = new THREE.Quaternion()
     //quaternion.setFromAxisAngle(path.normal, Math.PI / 2)
     //this.base.camera.applyQuaternion(quaternion)
+
     
     let radius = Math.exp(- this.time) + 10
     
@@ -189,7 +550,6 @@ export default class Video {
     
     this.audioObjects.forEach((element, index) => {
       let data = element.analyser.data
-      
       if (index == 1 ) {
         data.forEach((frequency, index) => {
           if (frequency > 90 ) {
@@ -225,45 +585,158 @@ export default class Video {
         if (index == 2) {
           mesh.scale.set(3, 3, 3)
         }
+
+        else if (index == 4) {
+          //mesh.scale.set(3, 3, 3)
+          mesh.rotation.x += this.rotations[0].x
+          mesh.rotation.y += 0.01
+          mesh.rotation.z += -0.01
+
+        }
       })
     })
 
 
     target = {
-      x: 90 * Math.cos(this.time),
-      y: 5,
-      z: 90 * Math.sin(this.time)
+      x: Math.cos(this.time / 128) * 112 * Math.cos(this.time) + 10 * Math.sin(5 * this.time) ,
+      y: Math.cos(this.time / 128) * 5  + 10,
+      z: Math.cos(this.time / 128) * 112 * Math.sin(this.time) + 10 * Math.sin(5 * this.time) 
     }
 
-    let arr = this.world.chairs
-    let chair = null
+    let arr = this.world.cookies
 
-    if (arr.length > 0) {
-      let index = (Math.floor(this.time / 2 * Math.PI) % arr.length) % arr.length
-      chair = arr[(arr.length - index) % arr.length].mesh
-    }
+    //if (arr.length > 0) {
+    //  let index = (Math.floor(this.time / 2 * Math.PI) % arr.length) % arr.length
+    //  cookie = arr[(arr.length - index) % arr.length].mesh
+    //}
 
     this.setCameraPos(target)
 
-    if (chair) {
-      let lookAtTarget = {
-	x: 2 * target.x,
-	y: 2 * target.y,
-	z: 2 * target.z
-      }
+    arr.forEach(cookie => {
+      let distanceToCamera = cookie.mesh.position.distanceTo(this.base.camera.position)
 
-
-      this.base.camera.lookAt(
-	lookAtTarget.x,
-	lookAtTarget.y,
-	lookAtTarget.z
+      vector.set(
+        this.base.camera.position.x,
+        this.base.camera.position.y,
+        this.base.camera.position.z
       )
-    }
-    
-    this.world.animate(this.time, this.base.camera)
-    this.audioObjects.forEach(element => { element.animate() })
-    this.world.audioObjects.forEach(element => {
-      element.animate()
+
+      cookie.mesh.lookAt(vector)
+
     })
+
+    vector.set(
+      this.base.camera.position.x,
+      this.base.camera.position.y,
+      this.base.camera.position.z
+    )
+
+    this.world.cookie.mesh.lookAt(vector)
+
+    
+    //if (chair) {
+    //let lookAtTarget = {
+    //	x: 2 * target.x,
+    //	y: 2 * target.y,
+    //	z: 2 * target.z
+    //      }
+    //
+    //
+    //      this.base.camera.lookAt(
+    //	lookAtTarget.x,
+    //	lookAtTarget.y,
+    //	lookAtTarget.z
+    //      )
+    //}
+
+
+    // change step on actiation and animates world
+    let vocalActivation = this.world.animate(this.time, this.base.camera)
+    let twinkleActivation = null
+    let arpsActivation = null
+    let drumsActivation = null
+    
+    this.audioObjects.forEach(element => {
+      switch(element.name) {
+        case 'twinkle':
+          twinkleActivation = element.animate(this.time)
+
+
+        case 'arps':
+          arpsActivation = element.animate(this.time)
+
+
+        case 'drums':
+          drumsActivation = element.animate(this.time)
+
+          
+        default:
+          element.animate(this.time)
+      }
+    })
+
+    if (this.base.camera.position.y > 5) {
+
+    }
+
+    if ( vocalActivation > 10  && this.trajectory.step == 0  ) {
+      this.halfTime = this.time
+      //this.halfTimeLookAt = {
+      //  x: this.lookAtTarget.x,
+      //  y: this.lookAtTarget.y,
+      //  z: this.lookAtTarget.z
+      //}
+      
+      //      this.cookiePosition = {
+      //        x: this.cookie.mesh.position.x,
+      //        y: this.cookie.mesh.position.y,
+      //        z: this.cookie.mesh.position.z
+      //      }
+      //      this.trajectory.next()
+    }
+
+    else if (arpsActivation > 15  && this.trajectory.step == 1) {
+      
+      this.halfTime = this.time
+      this.halfTimeLookAt = {
+        x: this.lookAtTarget.x,
+        y: this.lookAtTarget.y,
+        z: this.lookAtTarget.z
+      }
+//      this.trajectory.next()
+      
+    }
+
+
+    if (this.base.camera.position.distanceTo(vector.set(0,0,0)) > 101 && this.trajectory.step == 2) {
+      
+      this.halfTime = this.time
+      this.halfTimeLookAt = {
+        x: 0,
+        y: 0,
+        z: 0
+      }
+      
+//      this.trajectory.next()
+    }
+
+    if (twinkleActivation > 10 && this.base.camera.position.y > 7) {
+      this.halfTime = this.time
+      this.beachPosition = {
+        x: this.lookAtTarget.x,
+        y: this.lookAtTarget.y,
+        z: this.lookAtTarget.z
+      }
+//      this.trajectory.next()
+
+    }
+
+    vector.set(0, 50, 0)
+    if (drumsActivation > 26 && this.trajectory.step == 4) {
+      this.halfTime = this.time
+      
+//      this.trajectory.next()
+      this.end = true
+    }
   }
 }
