@@ -61,6 +61,13 @@ export class ThreeContainer extends Component {
 
   next = () => {
     this.video.trajectory.next()
+    this.video.halfTime = this.video.time
+    this.video.halfTimeLookAt = {
+      x: this.video.lookAtTarget.x,
+      y: this.video.lookAtTarget.y,
+      z: this.video.lookAtTarget.z
+    }
+    
   }
 
   
@@ -77,7 +84,9 @@ export class ThreeContainer extends Component {
     sounds.forEach(element => { element.play() })
 
     this.video.audioObjects[0].mediaElement.onended = this.stop
-    this.capturer.start()
+
+    //this.capturer.start()
+
 
     let self = this
     //setInterval(function(){
@@ -92,8 +101,8 @@ export class ThreeContainer extends Component {
 
   stop = () => {
     cancelAnimationFrame(this.frameId)
-    this.capturer.stop();
-    this.capturer.save();
+    //this.capturer.stop();
+    //this.capturer.save();
   }
 
   debug = () => {
@@ -106,7 +115,7 @@ export class ThreeContainer extends Component {
     this.base.animate(this.debugMode)
     this.frameId = window.requestAnimationFrame(this.animate)
 
-    this.capturer.capture(this.mount.querySelector('canvas'))
+    //this.capturer.capture(this.mount.querySelector('canvas'))
 
   }
   

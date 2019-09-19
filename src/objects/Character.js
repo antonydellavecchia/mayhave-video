@@ -82,9 +82,9 @@ export default class Character {
     });
     
     let average = sum / frequencyArr.length;
-    let input = average / 10;
+    let input = average / 15;
     //let input = frequencyArr[4] / 100;
-    let mouthAngle =   -3 * Math.PI / 2 + 0.4 * Math.PI * Math.exp(input) /  (1 + Math.exp(input))
+    let mouthAngle =  Math.PI * Math.exp(input) /  (1 + Math.exp(input))
     
     mouth.rotation.x = mouthAngle;
     

@@ -7,7 +7,7 @@ export default class AudioObject {
     this.meshes = []
     this.models = models
     this.name = models[0].name
-    this.mediaElement.playbackRate = playbackRate
+    //this.mediaElement.playbackRate = playbackRate
     audio.setMediaElementSource( this.mediaElement );
 
     

@@ -21,7 +21,7 @@ export default class ThreeBase {
     renderer.context.getExtension( 'OES_texture_float' );
     renderer.context.getExtension( 'OES_texture_float_linear' );
 
-    // set size
+    // set sizefr
     renderer.setSize(width, height);
     this.time = 0
     this.renderer = renderer    
@@ -37,8 +37,10 @@ export default class ThreeBase {
     this.scene.add(light)
 
     // timing
-    
-    this.playbackRate = 1.1
+
+    //this.playbackRate = 1.0
+    this.playbackRate = 1.0
+    //this.playbackRate = 0.3775
   }
 
   renderScene = () => {

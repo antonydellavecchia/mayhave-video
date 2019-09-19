@@ -30,9 +30,9 @@ export default class Video {
       // path 0
       (deltaTime, position) => {
         let ode = {
-          x: position.z - position.x * 0.1,
+          x: position.z - position.x * 0.2,
           y: - position.x * position.z / 15,
-          z: -1 * position.x - position.z * 0.1
+          z: -1 * position.x - position.z * 0.2
         }
 
         return {
@@ -48,20 +48,20 @@ export default class Video {
         
         let origin = {
           x: 0,
-          y: 20,
+          y: -20,
           z: 0
         }
 
-        let scale = 0.15
+        let scale = 0.05
         let position = {
           x: scale *  (pos.x - origin.x),
           y: scale *  (pos.y - origin.y),
           z: scale *  (pos.z - origin.z)
         }
 
-        let a =  1.2
+        let a =  3.2
         let b =  1.2
-        let c = 1.7
+        let c = 2.7
         
         let ode = {
           x: -1 * (position.y + position.z),
@@ -82,7 +82,7 @@ export default class Video {
         // lorenz
         let sigma = 10
         let beta = 8 / 3
-        let rho = 0.5
+        let rho = 1.25
 
         let origin = {
           x: 0,
@@ -118,7 +118,7 @@ export default class Video {
 
         let origin = {
           x: 0,
-          y: 15,
+          y: 25,
           z: 0
         }
 
@@ -131,7 +131,7 @@ export default class Video {
         let ode = {
           x: position.z ,
           y: - position.y,
-          z: - position.x
+          z: - 0.95 * position.x
         }
 
         return {
@@ -164,7 +164,7 @@ export default class Video {
         let ode = {
           x: position.z,
           y: position.y * (1 - position.y / 1000),
-          z: - position.x - 0.95 * position.z
+          z: - position.x - 1.3 * position.z
         }
 
         return {
@@ -289,7 +289,7 @@ export default class Video {
       USE_HALF_FLOAT: true,
       INITIAL_SIZE: 512.0,
       INITIAL_WIND: [ 1.0, 5.0 ],
-      INITIAL_CHOPPINESS: 1.5,
+      INITIAL_CHOPPINESS: 3.5,
       CLEAR_COLOR: [ 1.0, 1.0, 1.0, 0.0 ],
       GEOMETRY_ORIGIN: [ origx, origy, origz ],
       SUN_DIRECTION: [ - 1.0, 1.0, 1.0 ],
@@ -312,7 +312,7 @@ export default class Video {
     this.world = new World(THREE, base)
     this.world.createObjects()
     this.time = 0
-    this.step = 0.05 * this.playbackRate
+    this.step = 0.01 * this.playbackRate
     
     this.world.audioObjects.forEach(element => { this.audioObjects.push(element)})
   }
@@ -328,9 +328,6 @@ export default class Video {
       target.z
     )
 
-    
-    console.log(target, this.world.cookie, this.lastTarget)
-    
     this.lookAtTarget = {
       x: 2 * target.x - this.lastTarget.x,
       y: 2 * target.y - this.lastTarget.y,
@@ -345,22 +342,10 @@ export default class Video {
 
     else if (!beach && target.y > 7) {
       this.base.scene.add(this.world.beach)
-
-
-      this.world.cookie.mesh.position.set(
-        this.lookAtTarget.x - 0.3 * (this.lookAtTarget.x -  this.base.camera.position.x),
-        this.lookAtTarget.y - 0.3 * (this.lookAtTarget.y -  this.base.camera.position.y),
-        this.lookAtTarget.z - 0.3 * (this.lookAtTarget.z -  this.base.camera.position.z)
-      )
-
     }
     
-    if (this.trajectory.step === 1) {
-      let initial = {
-        x: 0,
-        y: 200,
-        z: 100
-      }
+    if (this.trajectory.step === 1) {   
+      let initial = {...this.halfTimeLookAt}
 
       //let initial = {
       //  x: this.halfTimeLookAt.x * Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)),
@@ -369,84 +354,97 @@ export default class Video {
       //}
 
       let end = {
-        x: this.world.cookie.mesh.x * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)),
-        y: this.world.cookie.mesh.y * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)),
-        z: this.world.cookie.mesh.z * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2))
+        x: this.lookAtTarget.x * Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)),
+        y: this.lookAtTarget.y * Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)),
+        z: this.lookAtTarget.z * Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2))
       }
-
       
+
       this.lookAtTarget = {
-        x: initial.x + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.x,
-        y: initial.y + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.y,
-        z: initial.z + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.z
+        x: initial.x * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)) + (1 - Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2))) * end.x,
+        y: initial.y * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)) + (1 - Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2))) * end.y,
+        z: initial.z * Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)) + (1 - Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2))) * end.z
       }
 
-
+      this.world.cookie.mesh.position.set(
+        this.base.camera.position.x + 0.5 * (this.lookAtTarget.x -  this.base.camera.position.x),
+        this.base.camera.position.y + 0.5 * (this.lookAtTarget.y -  this.base.camera.position.y),
+        this.base.camera.position.z + 0.5 * (this.lookAtTarget.z -  this.base.camera.position.z)
+      )
+      //this.world.cookie.mesh.position.set(
+      //  - 0.5 * (this.lookAtTarget.x - this.lookAtTarget.x ),
+      //)
     }
 
-    if (this.trajectory.step > 1 && this.trajectory.step < 3) {
-      this.lookAtTarget = {
+    if (this.trajectory.step == 2) {
+      let initial = {...this.halfTimeLookAt}
+      let end = {
         x: 0,
         y: 0,
         z: 0
       }
+      
+      this.lookAtTarget = {
+        x: initial.x * Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2)) + (1 - Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2))) * end.x,
+        y: initial.y * Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2)) + (1 - Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2))) * end.y,
+        z: initial.z * Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2)) + (1 - Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2))) * end.z
+      }
     }
-
+    
     if (this.trajectory.step == 3) {
-      let end = {...this.lookAtTarget}
+      let initial = {
+        x: -1 * this.base.camera.position.x,
+        y: -1 * this.base.camera.position.y,
+        z: -1 * this.base.camera.position.z
+      }
 
       this.lookAtTarget = {
-        x: (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * end.x,
-        y: (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * end.y,
-        z: (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * end.z
-      }
-
-
-      //console.log(this.lookAtTarget, this.time - this.halfTime)
-      let finalCookiePos = {
-        x: - 1 * this.base.camera.position.x,
-        y: - 1 * this.base.camera.position.y,
-        z: - 1 * this.base.camera.position.z
+        x: Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)) * initial.x + (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * this.lookAtTarget.x,
+        y: Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)) * initial.y + (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * this.lookAtTarget.y,
+        z: Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)) * initial.z + (1 - Math.exp(- 1 * Math.pow((this.time - this.halfTime), 2))) * this.lookAtTarget.z
       }
       
+      let end = {
+        x: 10 * (this.lookAtTarget.x - this.base.camera.position.x) + this.base.camera.position.x,
+        y: 10 * (this.lookAtTarget.y - this.base.camera.position.y) + this.base.camera.position.y,
+        z: 10 * (this.lookAtTarget.z - this.base.camera.position.z) + this.base.camera.position.z
+      }
+
       let cookieTarget = {
-        x: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * finalCookiePos.x,
-        y: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * finalCookiePos.y,
-        z: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * finalCookiePos.z
+        x: Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.x + (1 - Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2))) * end.x,
+        y: Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.y + (1 - Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2))) * end.y,
+        z: Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.z + (1 - Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2))) * end.z
       }
 
       this.world.cookie.mesh.position.set(
-        0,
-        75,
-        0
+        cookieTarget.x,
+        cookieTarget.y,
+        cookieTarget.z
       )
 
     }
 
     if (this.trajectory.step == 4) {
-
+      // rotate island
       let camera = this.base.camera
-      
       vector.set(1, 0, 0)
       let direction = camera.getWorldDirection(vector)
       let cameraAxis = vector.copy(camera.position).normalize()
       let angle = Math.acos(cameraAxis.y / 2)
       let rotationAxis = cameraAxis.cross(vector.clone().set(0, 1, 0)).normalize()
       this.world.island.rotate(cameraAxis, angle / 100)
-    }
-    
+      
 
-    if (this.trajectory.step == 4) {
       let end = {...this.lookAtTarget}
       
       this.lookAtTarget = {
-        x: Math.exp(- 0.1 * Math.pow((this.time - this.halfTime), 2)) * this.beachPosition.x,
-        y: Math.exp(- 0.01 * Math.pow((this.time - this.halfTime), 2)) * this.beachPosition.y,
-        z: Math.exp(- 0.01 * Math.pow((this.time - this.halfTime), 2)) * this.beachPosition.z
+        x: Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.x,
+        y: Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.y,
+        z: Math.exp(- 0.5 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.z
       }
 
       if (this.world.dolphinCenter.y > -50) {
-        this.world.dolphinCenter.y -= 0.05
+        this.world.dolphinCenter.y -= 0.1
       }
 
     }
@@ -458,34 +456,55 @@ export default class Video {
         y: 1000,
         z: 0
       }
-
       
-
       this.lookAtTarget = {
-        x: initial.x + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.x,
-        y: initial.y + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.y,
-        z: initial.z + (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.z
+        x: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.x,
+        y: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.y,
+        z: (1 - Math.exp(- 0.05 * Math.pow((this.time - this.halfTime), 2))) * end.z
       }
 
 
-      if ( target.y > - 29) {
-        this.world.cookie.mesh.position.set(target.x, target.y + 29.5, target.z)
+      if ( target.y > - 15) {
+        //this.world.cookie.mesh.position.set(target.x, target.y + 20, target.z)
+
+        let end = {
+          x: this.base.camera.position.x,
+          y: 20 + this.base.camera.position.y,
+          z: this.base.camera.position.z
+        }
+
+        let cookieTarget = {
+          x: Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.x + (1 - Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2))) * end.x,
+          y: Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.y + (1 - Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2))) * end.y,
+          z: Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2)) * this.world.cookie.mesh.position.z + (1 - Math.exp(- 2 * Math.pow((this.time - this.halfTime), 2))) * end.z
+        }
+
+        this.world.cookie.mesh.position.set(
+          cookieTarget.x,
+          cookieTarget.y,
+          cookieTarget.z
+        )
+
+        
       }
 
-      this.world.dolphinCenter = {
-        x: target.x,
-        y: target.y + (this.time - this.halfTime),
-        z: target.z
+      if (Math.abs(target.y - this.world.dolphinCenter.y) < 0.1) {
+        this.world.dolphinCenter = {
+          x: target.x,
+          y: target.y + 1.5 * (this.time - this.halfTime),
+          z: target.z
+        }
       }
 
-      let angle = Math.PI / 6
-      let rotationAxis = vector.set(0, 1, 0)
+      vector.set(
+        this.base.camera.position.x,
+        this.base.camera.position.y,
+        this.base.camera.position.z
+      )
 
-      quaternion.setFromAxisAngle(rotationAxis, - angle)
-      
-      this.world.cookie.mesh.lookAt(0, 0, 0)
-      this.world.cookie.mesh.applyQuaternion(quaternion)
+      this.world.cookie.mesh.lookAt(vector)
     }
+
 
     this.base.camera.lookAt(
       this.lookAtTarget.x,
@@ -493,17 +512,14 @@ export default class Video {
       this.lookAtTarget.z
     )
 
-    //let lookAtTarget = {
+
+    //this.lookAtTarget = {
     //  x: 2 * target.x - this.lastTarget.x,
     //  y: 2 * target.y - this.lastTarget.y,
     //  z: 2 * target.z - this.lastTarget.z
     //}
 
-
     this.lastTarget = target
-
-
-
   }
   
   animate() {
@@ -680,7 +696,7 @@ export default class Video {
     }
 
     if ( vocalActivation > 10  && this.trajectory.step == 0  ) {
-      this.halfTime = this.time
+      //this.halfTime = this.time
       //this.halfTimeLookAt = {
       //  x: this.lookAtTarget.x,
       //  y: this.lookAtTarget.y,
@@ -697,12 +713,12 @@ export default class Video {
 
     else if (arpsActivation > 15  && this.trajectory.step == 1) {
       
-      this.halfTime = this.time
-      this.halfTimeLookAt = {
-        x: this.lookAtTarget.x,
-        y: this.lookAtTarget.y,
-        z: this.lookAtTarget.z
-      }
+      //this.halfTime = this.time
+      //this.halfTimeLookAt = {
+      //  x: this.lookAtTarget.x,
+      //  y: this.lookAtTarget.y,
+      //  z: this.lookAtTarget.z
+      //}
 //      this.trajectory.next()
       
     }
@@ -710,18 +726,18 @@ export default class Video {
 
     if (this.base.camera.position.distanceTo(vector.set(0,0,0)) > 101 && this.trajectory.step == 2) {
       
-      this.halfTime = this.time
-      this.halfTimeLookAt = {
-        x: 0,
-        y: 0,
-        z: 0
-      }
+      //this.halfTime = this.time
+      //this.halfTimeLookAt = {
+      //  x: 0,
+      //  y: 0,
+      //  z: 0
+      //}
       
 //      this.trajectory.next()
     }
 
-    if (twinkleActivation > 10 && this.base.camera.position.y > 7) {
-      this.halfTime = this.time
+    if (twinkleActivation > 10 && this.base.camera.position.y > 3) {
+      //this.halfTime = this.time
       this.beachPosition = {
         x: this.lookAtTarget.x,
         y: this.lookAtTarget.y,
@@ -733,7 +749,7 @@ export default class Video {
 
     vector.set(0, 50, 0)
     if (drumsActivation > 26 && this.trajectory.step == 4) {
-      this.halfTime = this.time
+      //this.halfTime = this.time
       
 //      this.trajectory.next()
       this.end = true
