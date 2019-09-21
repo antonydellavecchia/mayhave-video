@@ -45,7 +45,6 @@ export default class Video {
       // path 1 
       (deltaTime, pos) => {
         // rossler
-        
         let origin = {
           x: 0,
           y: -20,
