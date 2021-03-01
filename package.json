@@ -51,7 +51,7 @@
     "socket.io-client": "^2.2.0",
     "style-loader": "0.23.1",
     "terser-webpack-plugin": "1.2.2",
-    "three": "^0.102.1",
+    "three": "^0.125.0",
     "three-gltf-loader": "^1.103.0",
     "url-loader": "1.1.2",
     "webm-writer": "^0.2.2",
